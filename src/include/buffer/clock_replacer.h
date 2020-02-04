@@ -46,7 +46,14 @@ class ClockReplacer : public Replacer {
   size_t Size() override;
 
  private:
-  // TODO(student): implement me!
+  /** Number of frames in the buffer pool. */
+  size_t num_frames;
+  /* Whether the frames are pinned */
+  bool *pin;
+  /* Ref flag of the frames */
+  bool *ref;
+  /* The clock hand */
+  size_t hand;
 };
 
 }  // namespace bustub
