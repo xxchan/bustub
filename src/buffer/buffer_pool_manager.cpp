@@ -52,19 +52,19 @@ Page *BufferPoolManager::FetchPageImpl(page_id_t page_id) {
     page = &pages_[frame_id];
     ++page->pin_count_;
     return page;
-  } else {                      // page table miss, find a frame id
-    if (!free_list_.empty()) {  // find from the free list
-      frame_id = free_list_.front();
-      free_list_.pop_front();
-    } else if (replacer_->Victim(&frame_id)) {  // find from the replacer
-      victim = &pages_[frame_id];
-      if (victim->IsDirty()) {
-        disk_manager_->WritePage(victim->GetPageId(), victim->GetData());
-      }
-      page_table_.erase(victim->GetPageId());
-    } else {  // no available frame id
-      return nullptr;
+  }
+  // page table miss, find a frame id
+  if (!free_list_.empty()) {  // find from the free list
+    frame_id = free_list_.front();
+    free_list_.pop_front();
+  } else if (replacer_->Victim(&frame_id)) {  // find from the replacer
+    victim = &pages_[frame_id];
+    if (victim->IsDirty()) {
+      disk_manager_->WritePage(victim->GetPageId(), victim->GetData());
     }
+    page_table_.erase(victim->GetPageId());
+  } else {  // no available frame id
+    return nullptr;
   }
 
   page_table_.insert({page_id, frame_id});
@@ -160,16 +160,16 @@ bool BufferPoolManager::DeletePageImpl(page_id_t page_id) {
   if (search != page_table_.end()) {  // present in the buffer pool
     frame_id = search->second;
     page = &pages_[frame_id];
-    if (page->pin_count_) {
+    if (page->pin_count_ != 0) {
       return false;
     }
     page_table_.erase(page_id);
     page->ResetMemory();
     free_list_.push_front(frame_id);
     return true;
-  } else {  // page table miss
-    return false;
   }
+  // page table miss
+  return false;
 }
 
 void BufferPoolManager::FlushAllPagesImpl() {

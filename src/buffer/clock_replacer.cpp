@@ -31,7 +31,7 @@ ClockReplacer::~ClockReplacer() {
 }
 
 bool ClockReplacer::Victim(frame_id_t *frame_id) {
-  size_t i = hand, first_unpinned = (size_t)-1;
+  size_t i = hand, first_unpinned = static_cast<size_t>(-1);
   do {
     if (!pin[i]) {
       first_unpinned = i;
@@ -41,7 +41,7 @@ bool ClockReplacer::Victim(frame_id_t *frame_id) {
     i = (i + 1) % num_frames;
   } while (i != hand);
 
-  if (first_unpinned == (size_t)-1) {  // all frames pinned
+  if (first_unpinned == static_cast<size_t>(-1)) {  // all frames pinned
     return false;
   }
 
@@ -76,7 +76,7 @@ void ClockReplacer::Unpin(frame_id_t frame_id) {
 size_t ClockReplacer::Size() {
   size_t cnt = 0;
   for (size_t i = 0; i < num_frames; ++i) {
-    cnt += !pin[i];
+    cnt += pin[i] ? 0 : 1;
   }
   return cnt;
 }
