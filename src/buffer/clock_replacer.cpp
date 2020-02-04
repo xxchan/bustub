@@ -11,7 +11,6 @@
 //===----------------------------------------------------------------------===//
 
 #include "buffer/clock_replacer.h"
-#include "assert.h"
 
 namespace bustub {
 
@@ -32,11 +31,21 @@ ClockReplacer::~ClockReplacer() {
 }
 
 bool ClockReplacer::Victim(frame_id_t *frame_id) {
-  size_t i = hand;
+  size_t i = hand, first_unpinned = (size_t)-1;
   do {
-    if (i == num_frames) {
-      i = 0;
+    if (!pin[i]) {
+      first_unpinned = i;
+      break;
     }
+    ref[i] = false;
+    i = (i + 1) % num_frames;
+  } while (i != hand);
+
+  if (first_unpinned == (size_t)-1) {  // all frames pinned
+    return false;
+  }
+
+  do {
     if (!pin[i] && !ref[i]) {
       *frame_id = i;
       hand = i;
@@ -44,16 +53,13 @@ bool ClockReplacer::Victim(frame_id_t *frame_id) {
       return true;
     }
     ref[i] = false;
-    ++i;
+    i = (i + 1) % num_frames;
   } while (i != hand);
 
-  if (!pin[hand]) {
-    *frame_id = hand;
-    pin[hand] = true;
-    return true;
-  } else {
-    return false;
-  }
+  *frame_id = first_unpinned;
+  hand = first_unpinned;
+  pin[hand] = true;
+  return true;
 }
 
 void ClockReplacer::Pin(frame_id_t frame_id) {
