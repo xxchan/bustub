@@ -12,6 +12,8 @@
 
 #include "buffer/clock_replacer.h"
 
+#include <cassert>
+
 namespace bustub {
 
 ClockReplacer::ClockReplacer(size_t num_pages) {
@@ -31,6 +33,7 @@ ClockReplacer::~ClockReplacer() {
 }
 
 bool ClockReplacer::Victim(frame_id_t *frame_id) {
+  std::lock_guard<std::mutex> lock(latch_);
   size_t i = hand, first_unpinned = static_cast<size_t>(-1);
   do {
     if (!pin[i]) {
@@ -63,17 +66,20 @@ bool ClockReplacer::Victim(frame_id_t *frame_id) {
 }
 
 void ClockReplacer::Pin(frame_id_t frame_id) {
-  //   assert(0 <= frame_id && frame_id < num_frames);
+  assert(0 <= frame_id && frame_id < static_cast<frame_id_t>(num_frames));
+  std::lock_guard<std::mutex> lock(latch_);
   pin[frame_id] = true;
 }
 
 void ClockReplacer::Unpin(frame_id_t frame_id) {
-  //   assert(0 <= frame_id && frame_id < num_frames);
+  assert(0 <= frame_id && frame_id < static_cast<frame_id_t>(num_frames));
+  std::lock_guard<std::mutex> lock(latch_);
   pin[frame_id] = false;
   ref[frame_id] = true;
 }
 
 size_t ClockReplacer::Size() {
+  std::lock_guard<std::mutex> lock(latch_);
   size_t cnt = 0;
   for (size_t i = 0; i < num_frames; ++i) {
     cnt += pin[i] ? 0 : 1;

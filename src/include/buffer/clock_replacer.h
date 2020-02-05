@@ -54,6 +54,7 @@ class ClockReplacer : public Replacer {
   bool *ref;
   /* The clock hand */
   size_t hand;
+  std::mutex latch_;
 };
 
 }  // namespace bustub

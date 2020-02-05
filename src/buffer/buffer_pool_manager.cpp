@@ -45,6 +45,7 @@ Page *BufferPoolManager::FetchPageImpl(page_id_t page_id) {
   assert(page_id != INVALID_PAGE_ID);
   frame_id_t frame_id;
   Page *page, *victim;
+  std::lock_guard<std::mutex> lock(latch_);
 
   auto search = page_table_.find(page_id);
   if (search != page_table_.end()) {  // present in the buffer pool
@@ -80,6 +81,7 @@ Page *BufferPoolManager::FetchPageImpl(page_id_t page_id) {
 
 bool BufferPoolManager::UnpinPageImpl(page_id_t page_id, bool is_dirty) {
   assert(page_id != INVALID_PAGE_ID);
+  std::lock_guard<std::mutex> lock(latch_);
   auto search = page_table_.find(page_id);
   if (search != page_table_.end()) {
     frame_id_t frame_id = search->second;
@@ -101,6 +103,7 @@ bool BufferPoolManager::UnpinPageImpl(page_id_t page_id, bool is_dirty) {
 bool BufferPoolManager::FlushPageImpl(page_id_t page_id) {
   // Make sure you call DiskManager::WritePage!
   assert(page_id != INVALID_PAGE_ID);
+  std::lock_guard<std::mutex> lock(latch_);
   auto search = page_table_.find(page_id);
   if (search != page_table_.end()) {
     frame_id_t frame_id = search->second;
@@ -121,6 +124,7 @@ Page *BufferPoolManager::NewPageImpl(page_id_t *page_id) {
   // 4.   Set the page ID output parameter. Return a pointer to P.
   frame_id_t frame_id;
   Page *page, *victim;
+  std::lock_guard<std::mutex> lock(latch_);
   if (!free_list_.empty()) {  // find from the free list
     frame_id = free_list_.front();
     free_list_.pop_front();
@@ -153,6 +157,7 @@ bool BufferPoolManager::DeletePageImpl(page_id_t page_id) {
   // 2.   If P exists, but has a non-zero pin-count, return false. Someone is using the page.
   // 3.   Otherwise, P can be deleted. Remove P from the page table, reset its metadata and return it to the free list.
   assert(page_id != INVALID_PAGE_ID);
+  std::lock_guard<std::mutex> lock(latch_);
   frame_id_t frame_id;
   Page *page;
 
@@ -173,6 +178,7 @@ bool BufferPoolManager::DeletePageImpl(page_id_t page_id) {
 }
 
 void BufferPoolManager::FlushAllPagesImpl() {
+  std::lock_guard<std::mutex> lock(latch_);
   for (size_t i = 0; i < pool_size_; ++i) {
     Page *page = &pages_[i];
     if (page->IsDirty()) {
