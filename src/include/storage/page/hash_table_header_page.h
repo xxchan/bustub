@@ -95,6 +95,7 @@ class HashTableHeaderPage {
   __attribute__((unused)) page_id_t page_id_;
   __attribute__((unused)) size_t next_ind_;
   __attribute__((unused)) page_id_t block_page_ids_[0];
+  static constexpr size_t max_size_ = 1020;
 };
 
 }  // namespace bustub
