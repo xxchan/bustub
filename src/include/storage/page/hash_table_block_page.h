@@ -99,6 +99,9 @@ class HashTableBlockPage {
   // 0 if tombstone/brand new (never occupied), 1 otherwise.
   std::atomic_char readable_[(BLOCK_ARRAY_SIZE - 1) / 8 + 1];
   MappingType array_[0];
+
+  void SetOccupied(slot_offset_t bucket_ind, bool flag);
+  void SetReadable(slot_offset_t bucket_ind, bool flag);
 };
 
 }  // namespace bustub
