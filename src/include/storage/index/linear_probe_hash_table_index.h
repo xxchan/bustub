@@ -2,7 +2,7 @@
 //
 //                         BusTub
 //
-// linear_probe_hash_table_index.h
+// linear_probe_hash_table_index.h n
 //
 // Identification: src/include/storage/index/linear_probe_hash_table_index.h
 //
