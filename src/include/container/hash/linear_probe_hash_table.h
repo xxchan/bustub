@@ -97,6 +97,29 @@ class LinearProbeHashTable : public HashTable<KeyType, ValueType, KeyComparator>
 
   // Hash function
   HashFunction<KeyType> hash_fn_;
+
+  inline HashTableHeaderPage *GetHeaderPage() {
+    return reinterpret_cast<HashTableHeaderPage *>(
+        buffer_pool_manager_->FetchPage(header_page_id_, nullptr)->GetData());
+  }
+
+  inline HASH_TABLE_BLOCK_TYPE *GetBlockPage(size_t block_index) {
+    auto block_page_id = GetHeaderPage()->GetBlockPageId(block_index);
+    return reinterpret_cast<HASH_TABLE_BLOCK_TYPE *>(
+        buffer_pool_manager_->FetchPage(block_page_id, nullptr)->GetData());
+  }
+
+  inline size_t GetBlockNum() { return (GetSize() - 1) / BLOCK_ARRAY_SIZE + 1; }
+
+  inline void IncSize(size_t delta) {
+    auto header_page = GetHeaderPage();
+    header_page->SetSize(header_page->GetSize() + delta);
+  }
+
+  inline void DecSize(size_t delta) {
+    auto header_page = GetHeaderPage();
+    header_page->SetSize(header_page->GetSize() - delta);
+  }
 };
 
 }  // namespace bustub

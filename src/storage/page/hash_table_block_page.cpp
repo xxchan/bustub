@@ -30,7 +30,7 @@ ValueType HASH_TABLE_BLOCK_TYPE::ValueAt(slot_offset_t bucket_ind) const {
 template <typename KeyType, typename ValueType, typename KeyComparator>
 bool HASH_TABLE_BLOCK_TYPE::Insert(slot_offset_t bucket_ind, const KeyType &key, const ValueType &value) {
   assert(bucket_ind < BLOCK_ARRAY_SIZE);
-  if (IsOccupied(bucket_ind)) {
+  if (IsOccupied(bucket_ind) && IsReadable(bucket_ind)) {
     return false;
   }
   array_[bucket_ind] = {key, value};
