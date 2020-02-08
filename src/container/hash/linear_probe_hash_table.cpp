@@ -32,7 +32,7 @@ HASH_TABLE_TYPE::LinearProbeHashTable(const std::string &name, BufferPoolManager
       reinterpret_cast<HashTableHeaderPage *>(buffer_pool_manager_->NewPage(&header_page_id_, nullptr)->GetData());
   header_page->SetPageId(header_page_id_);
   header_page->SetSize(num_buckets);
-  for (size_t i = 0; i < num_buckets; ++i) {
+  for (size_t i = 0; i < GetBlockNum(); ++i) {
     page_id_t block_page_id;
     buffer_pool_manager_->NewPage(&block_page_id, nullptr);
     header_page->AddBlockPageId(block_page_id);
@@ -109,14 +109,13 @@ bool HASH_TABLE_TYPE::Remove(Transaction *transaction, const KeyType &key, const
   size_t block_index = slot_offset_begin / BLOCK_ARRAY_SIZE;
   slot_offset_t block_offset = slot_offset_begin % BLOCK_ARRAY_SIZE;
   auto block_page = GetBlockPage(block_index);
-  bool ret = false;
   while (block_page->IsOccupied(block_offset)) {
     if (block_page->IsReadable(block_offset)) {
       auto curr_key = block_page->KeyAt(block_offset);
-      if (comparator_(curr_key, key) == 0) {
+      auto curr_value = block_page->ValueAt(block_offset);
+      if (comparator_(curr_key, key) == 0 && curr_value == value) {  // Is '==' for value OK?
         block_page->Remove(block_offset);
-        ret = true;
-        break;  // remove only one K-V pair
+        return true;
       }
     }
     block_offset++;
@@ -129,7 +128,7 @@ bool HASH_TABLE_TYPE::Remove(Transaction *transaction, const KeyType &key, const
       break;
     }
   }
-  return ret;
+  return false;
 }
 
 /*****************************************************************************
