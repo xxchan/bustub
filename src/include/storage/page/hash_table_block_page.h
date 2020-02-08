@@ -19,6 +19,7 @@
 #include "common/config.h"
 #include "storage/index/int_comparator.h"
 #include "storage/page/hash_table_page_defs.h"
+#include "storage/page/page.h"
 
 namespace bustub {
 /**
@@ -92,6 +93,18 @@ class HashTableBlockPage {
    * @return true if the index is readable, false otherwise
    */
   bool IsReadable(slot_offset_t bucket_ind) const;
+
+  /** Acquire the page write latch. */
+  inline void WLatch() { reinterpret_cast<Page *>(this)->WLatch(); }
+
+  /** Release the page write latch. */
+  inline void WUnlatch() { reinterpret_cast<Page *>(this)->WUnlatch(); }
+
+  /** Acquire the page read latch. */
+  inline void RLatch() { reinterpret_cast<Page *>(this)->RLatch(); }
+
+  /** Release the page read latch. */
+  inline void RUnlatch() { reinterpret_cast<Page *>(this)->RUnlatch(); }
 
  private:
   std::atomic_char occupied_[(BLOCK_ARRAY_SIZE - 1) / 8 + 1];
