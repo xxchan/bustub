@@ -116,7 +116,7 @@ bool HASH_TABLE_TYPE::Remove(Transaction *transaction, const KeyType &key, const
       if (comparator_(curr_key, key) == 0) {
         block_page->Remove(block_offset);
         ret = true;
-        break; // remove only one K-V pair
+        break;  // remove only one K-V pair
       }
     }
     block_offset++;
