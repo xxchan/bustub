@@ -92,8 +92,9 @@ bool HASH_TABLE_TYPE::Insert(Transaction *transaction, const KeyType &key, const
       block_index = (block_index + 1) % GetBlockNum();
       block_page = GetBlockPage(block_index);
     }
-    if (block_index * BLOCK_ARRAY_SIZE + block_offset == slot_offset_begin) {
-      break;
+    if (block_index * BLOCK_ARRAY_SIZE + block_offset == slot_offset_begin) {  // hash table is full
+      Resize(GetSize());
+      return Insert(transaction, key, value);
     }
   }
 
@@ -135,7 +136,42 @@ bool HASH_TABLE_TYPE::Remove(Transaction *transaction, const KeyType &key, const
  * RESIZE
  *****************************************************************************/
 template <typename KeyType, typename ValueType, typename KeyComparator>
-void HASH_TABLE_TYPE::Resize(size_t initial_size) {}
+void HASH_TABLE_TYPE::Resize(size_t initial_size) {
+  auto header_page = GetHeaderPage();
+  auto old_block_num = GetBlockNum();
+  header_page->SetSize(2 * initial_size);
+  for (size_t i = old_block_num; i < GetBlockNum(); ++i) {
+    page_id_t block_page_id;
+    buffer_pool_manager_->NewPage(&block_page_id, nullptr);
+    header_page->AddBlockPageId(block_page_id);
+    buffer_pool_manager_->UnpinPage(block_page_id, false, nullptr);
+  }
+
+  size_t block_index = 0;
+  slot_offset_t block_offset = 0;
+  auto block_page = GetBlockPage(block_index);
+  while (block_page->IsOccupied(block_offset) && block_index < old_block_num) {
+    if (block_page->IsReadable(block_offset)) {
+      auto curr_key = block_page->KeyAt(block_offset);
+      auto curr_slot_offset = hash_fn_.GetHash(curr_key) % GetSize();
+      auto curr_block_index = curr_slot_offset / GetBlockNum();
+      if (curr_block_index >= old_block_num) {
+        // can be moved to new allocated block
+        // leave tombstone in the original slot
+        auto curr_value = block_page->ValueAt(block_offset);
+        // can be improved, no need to search
+        Remove(nullptr, curr_key, curr_value);
+        Insert(nullptr, curr_key, curr_value);
+      }
+    }
+    block_offset++;
+    if (block_offset == BLOCK_ARRAY_SIZE) {
+      block_offset = 0;
+      ++block_index;
+      block_page = GetBlockPage(block_index);
+    }
+  }
+}
 
 /*****************************************************************************
  * GETSIZE
