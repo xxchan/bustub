@@ -35,7 +35,7 @@ class InsertExecutor : public AbstractExecutor {
    */
   InsertExecutor(ExecutorContext *exec_ctx, const InsertPlanNode *plan,
                  std::unique_ptr<AbstractExecutor> &&child_executor)
-      : AbstractExecutor(exec_ctx) {}
+      : AbstractExecutor(exec_ctx), plan_{plan} {}
 
   const Schema *GetOutputSchema() override { return plan_->OutputSchema(); }
 
@@ -43,10 +43,32 @@ class InsertExecutor : public AbstractExecutor {
 
   // Note that Insert does not make use of the tuple pointer being passed in.
   // We return false if the insert failed for any reason, and return true if all inserts succeeded.
-  bool Next([[maybe_unused]] Tuple *tuple) override { return false; }
+  bool Next([[maybe_unused]] Tuple *tuple) override {
+    auto table = GetTableMeta();
+    RID rid;
+    if (plan_->IsRawInsert()) {
+      for (auto &value : plan_->RawValues()) {
+        Tuple tmp = Tuple(value, &table->schema_);
+        if (!table->table_->InsertTuple(tmp, &rid, exec_ctx_->GetTransaction())) {
+          return false;
+        }
+      }
+    } else {
+      auto child = plan_->GetChildPlan();
+      auto executor = ExecutorFactory::CreateExecutor(exec_ctx_, child);
+      Tuple tmp;
+      while (executor->Next(&tmp)) {
+        if (!table->table_->InsertTuple(tmp, &rid, exec_ctx_->GetTransaction())) {
+          return false;
+        }
+      }
+    }
+    return true;
+  }
 
  private:
   /** The insert plan node to be executed. */
   const InsertPlanNode *plan_;
+  const TableMetadata *GetTableMeta() { return exec_ctx_->GetCatalog()->GetTable(plan_->TableOid()); }
 };
 }  // namespace bustub
