@@ -34,7 +34,8 @@ ClockReplacer::~ClockReplacer() {
 
 bool ClockReplacer::Victim(frame_id_t *frame_id) {
   std::lock_guard<std::mutex> lock(latch_);
-  size_t i = hand, first_unpinned = static_cast<size_t>(-1);
+  size_t i = hand;
+  auto first_unpinned = static_cast<size_t>(-1);
   do {
     if (!pin[i]) {
       first_unpinned = i;

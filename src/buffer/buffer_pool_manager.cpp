@@ -44,7 +44,8 @@ Page *BufferPoolManager::FetchPageImpl(page_id_t page_id) {
   // 4.     Update P's metadata, read in the page content from disk, and then return a pointer to P.
   assert(page_id != INVALID_PAGE_ID);
   frame_id_t frame_id;
-  Page *page, *victim;
+  Page *page;
+  Page *victim;
   std::lock_guard<std::mutex> lock(latch_);
 
   auto search = page_table_.find(page_id);
@@ -123,7 +124,8 @@ Page *BufferPoolManager::NewPageImpl(page_id_t *page_id) {
   // 3.   Update P's metadata, zero out memory and add P to the page table.
   // 4.   Set the page ID output parameter. Return a pointer to P.
   frame_id_t frame_id;
-  Page *page, *victim;
+  Page *page;
+  Page *victim;
   std::lock_guard<std::mutex> lock(latch_);
   if (!free_list_.empty()) {  // find from the free list
     frame_id = free_list_.front();
