@@ -22,6 +22,7 @@
 #include "execution/executor_context.h"
 #include "execution/executors/abstract_executor.h"
 #include "execution/expressions/abstract_expression.h"
+#include "execution/expressions/aggregate_value_expression.h"
 #include "execution/plans/aggregation_plan.h"
 #include "storage/table/tuple.h"
 #include "type/value_factory.h"
@@ -162,16 +163,49 @@ class AggregationExecutor : public AbstractExecutor {
    */
   AggregationExecutor(ExecutorContext *exec_ctx, const AggregationPlanNode *plan,
                       std::unique_ptr<AbstractExecutor> &&child)
-      : AbstractExecutor(exec_ctx) {}
+      : AbstractExecutor(exec_ctx),
+        plan_{plan},
+        child_{std::move(child)},
+        aht_(plan->GetAggregates(), plan->GetAggregateTypes()),
+        aht_iterator_(aht_.Begin()) {}
 
   /** Do not use or remove this function, otherwise you will get zero points. */
   const AbstractExecutor *GetChildExecutor() const { return child_.get(); }
 
   const Schema *GetOutputSchema() override { return plan_->OutputSchema(); }
 
-  void Init() override {}
+  void Init() override {
+    Tuple tuple;
+    while (child_->Next(&tuple)) {
+      aht_.InsertCombine(MakeKey(&tuple), MakeVal(&tuple));
+    }
+    aht_iterator_ = aht_.Begin();
+  }
 
-  bool Next(Tuple *tuple) override { return false; }
+  bool Next(Tuple *tuple) override {
+    auto having = plan_->GetHaving();
+    for (; aht_iterator_ != aht_.End(); ++aht_iterator_) {
+      auto key = aht_iterator_.Key().group_bys_;
+      auto val = aht_iterator_.Val().aggregates_;
+      if (!having || having->EvaluateAggregate(key, val).GetAs<bool>()) {
+        std::vector<Value> values;
+        auto iter_key = key.begin();
+        auto iter_val = val.begin();
+        auto schema = GetOutputSchema();
+        for (auto &column : schema->GetColumns()) {
+          if (dynamic_cast<const AggregateValueExpression *>(column.GetExpr())->IsGroupBy()) {
+            values.push_back(*iter_key++);
+          } else {
+            values.push_back(*iter_val++);
+          }
+        }
+        *tuple = Tuple(values, GetOutputSchema());
+        ++aht_iterator_;
+        return true;
+      }
+    }
+    return false;
+  }
 
   /** @return the tuple as an AggregateKey */
   AggregateKey MakeKey(const Tuple *tuple) {
@@ -197,8 +231,8 @@ class AggregationExecutor : public AbstractExecutor {
   /** The child executor whose tuples we are aggregating. */
   std::unique_ptr<AbstractExecutor> child_;
   /** Simple aggregation hash table. */
-  // Uncomment me! SimpleAggregationHashTable aht_;
+  SimpleAggregationHashTable aht_;
   /** Simple aggregation hash table iterator. */
-  // Uncomment me! SimpleAggregationHashTable::Iterator aht_iterator_;
+  SimpleAggregationHashTable::Iterator aht_iterator_;
 };
 }  // namespace bustub

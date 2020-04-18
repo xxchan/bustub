@@ -46,6 +46,8 @@ class AggregateValueExpression : public AbstractExpression {
     return is_group_by_term_ ? group_bys[term_idx_] : aggregates[term_idx_];
   }
 
+  bool IsGroupBy() const { return is_group_by_term_; }
+
  private:
   bool is_group_by_term_;
   uint32_t term_idx_;
