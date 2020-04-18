@@ -43,7 +43,7 @@ class SeqScanExecutor : public AbstractExecutor {
   bool Next(Tuple *tuple) override {
     auto predicate_ = plan_->GetPredicate();
     for (; iter != iter_end; ++iter) {
-      if (!predicate_ || predicate_->Evaluate(&*iter, GetOutputSchema()).GetAs<bool>()) {
+      if (predicate_ == nullptr || predicate_->Evaluate(&*iter, GetOutputSchema()).GetAs<bool>()) {
         *tuple = *iter;
         ++iter;
         return true;

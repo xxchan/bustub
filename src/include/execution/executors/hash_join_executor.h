@@ -117,7 +117,7 @@ class HashJoinExecutor : public AbstractExecutor {
     right_executor = ExecutorFactory::CreateExecutor(GetExecutorContext(), right_plan);
     predicate = plan_->Predicate();
     Tuple tuple;
-    
+
     while (left_executor->Next(&tuple)) {
       auto hash = HashValues(&tuple, left_schema, left_keys);
       jht_.Insert(exec_ctx_->GetTransaction(), hash, tuple);
@@ -166,7 +166,7 @@ class HashJoinExecutor : public AbstractExecutor {
   /** The hash join plan node. */
   const HashJoinPlanNode *plan_;
   /** The comparator is used to compare hashes. */
-  [[maybe_unused]] HashComparator jht_comp_{};
+  [[maybe_unused]] HashComparator jht_comp_ {};
   /** The identity hash function. */
   IdentityHashFunction jht_hash_fn_{};
 

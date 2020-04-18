@@ -187,7 +187,7 @@ class AggregationExecutor : public AbstractExecutor {
     for (; aht_iterator_ != aht_.End(); ++aht_iterator_) {
       auto key = aht_iterator_.Key().group_bys_;
       auto val = aht_iterator_.Val().aggregates_;
-      if (!having || having->EvaluateAggregate(key, val).GetAs<bool>()) {
+      if (having == nullptr || having->EvaluateAggregate(key, val).GetAs<bool>()) {
         std::vector<Value> values;
         auto iter_key = key.begin();
         auto iter_val = val.begin();
